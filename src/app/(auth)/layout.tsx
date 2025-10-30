@@ -5,7 +5,10 @@ import { FcGoogle } from "react-icons/fc";
 const ReactLayout = ({ children }:
     Readonly<{ children: ReactNode }>) => {
     return (
-        {children}
+        <body>
+            {children}
+        </body>
+
     )
 }
 
