@@ -1,10 +1,12 @@
+import Footer from "@/components/layout/Footer";
+import Navbarserver from "@/components/layout/Navbarserver";
 import type { Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Toaster } from "react-hot-toast";
+import Providers from '../components/providerReactQuery';
 import { ThemeProvider } from "../components/ThemeProvider";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-
+import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,12 +32,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-
+        <Providers >
+        <SessionProvider>
         <ThemeProvider>
-         <Navbar/>
+         <Navbarserver/>
           {children}
+          <Toaster position="top-right" />
          <Footer/>
-        </ThemeProvider>
+          </ThemeProvider>
+          </SessionProvider>
+          </Providers>
       </body>
     </html>
   );

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Swiper core styles (imported globally so overrides below can take effect) */
+@import "swiper/css";
+@import "swiper/css/pagination";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,6 +14,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-icons:var(--accent-gold);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -45,71 +49,78 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Professional hotel booking palette (light mode) */
+  --background: #FFFFFF; /* white background for clean UI */
+  --foreground: #0F1724; /* near-black slate for text */
+  --card: #FFFFFF;
+  --card-foreground: #0F1724;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F1724;
+  --primary: #0E2A47; /* deep navy — primary brand color */
+  --primary-foreground: #FFFFFF;
+  --secondary: #6C787B; /* steel gray */
+  --secondary-foreground: #F8FAFB;
+  --muted: #F3F4F6; /* light neutral surfaces */
+  --muted-foreground: #6B7280;
+  --accent: #2E3B41; /* slate/steel accent */
+  --accent-foreground: #FFFFFF;
+  --accent-gold: #E29A0B; /* warm gold for CTAs and highlights */
+  --accent-gold-contrast: #1B1B17;
+  --destructive: #D1433A;
+  --border: #E6E8EA;
+  --input: #F8FAFB;
+  --ring: rgba(14,42,71,0.12);
+  --chart-1: #B2782A;
+  --chart-2: #6C787B;
+  --chart-3: #2E3B41;
+  --chart-4: #E29A0B;
+  --chart-5: #0E2A47;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F1724;
+  --sidebar-primary: #0E2A47;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2E3B41;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #E6E8EA;
+  --sidebar-ring: rgba(14,42,71,0.12);
+   --outline-guest: linear-gradient(135deg, #2E3B41, #6C787B);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark mode palette: keep brand but invert where needed */
+  --background: #0B1220; /* near-black navy */
+  --foreground: #F8FAFB; /* off-white text */
+  --card: #0F1724;
+  --card-foreground: #F8FAFB;
+  --popover: #0F1724;
+  --popover-foreground: #F8FAFB;
+  --primary: #0E2A47; /* keep navy primary */
+  --primary-foreground: #FFFFFF;
+  --secondary: #95A1A3; /* lighter steel */
+  --secondary-foreground: #F8FAFB;
+  --muted: #0B1220;
+  --muted-foreground: #94A3B8;
+  --accent: #2E3B41;
+  --accent-foreground: #FFFFFF;
+  --accent-gold: #E29A0B;
+  --destructive: #FF6B6B;
+  --border: rgba(255,255,255,0.06);
+  --input: rgba(255,255,255,0.03);
+  --ring: rgba(226,154,11,0.12);
+  --chart-1: #B2782A;
+  --chart-2: #6C787B;
+  --chart-3: #2E3B41;
+  --chart-4: #E29A0B;
+  --chart-5: #0E2A47;
+  --sidebar: #071026;
+  --sidebar-foreground: #F8FAFB;
+  --sidebar-primary: #0E2A47;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2E3B41;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255,255,255,0.06);
+  --sidebar-ring: rgba(226,154,11,0.12);
+   --outline-guest: linear-gradient(135deg, #6C787B, #2E3B41);
 }
 
 @layer base {
@@ -119,11 +130,19 @@
   body {
     @apply bg-background text-foreground;
   }
+  section{
+    @apply max-w-7xl px-4 md:px-6 lg:px-8 mx-auto
+  }
+  h2{
+    @apply font-bold text-xl md:text-2xl lg:text-3xl mb-6;
+  }
 }
+
 /* === Components Layer === */
 @layer components {
+
   h1 {
-    @apply relative font-semibold lg:text-2xl 2xl:text-3xl leading-tight;
+    @apply relative font-semibold  lg:text-2xl 2xl:text-3xl leading-tight;
 
     span {
       background: linear-gradient(
@@ -144,6 +163,12 @@
         0 0 30px rgb(108 120 123 / 0.2);
     }
   }
+  .check-in-out-input{
+    @apply flex flex-row md:flex-col md:items-center space-y-1;
+  }
+  .search_section{
+    @apply container md:px-4 md:mx-auto outline-1 outline-ring shadow-xl shadow-ring my-3 rounded-3xl
+  }
 
   .btn-gradient-gold {
     @apply text-white font-medium px-6 py-3 rounded-lg transition-all shadow-lg;
@@ -159,14 +184,90 @@
     @apply text-white font-medium px-6 py-3 rounded-lg transition-all shadow-lg;
     background: linear-gradient(135deg, #E29A0B 0%, #2E3B41 100%);
   }
+  .oferEffect {
+    @apply relative
+      after:absolute after:left-0 after:inset-y-0
+      after:w-[3px] after:bg-[#E29A0B]
+      after:scale-y-0 after:origin-top
+      after:transition-transform after:duration-300
+      hover:after:scale-y-100
 
+      before:absolute before:right-0 before:inset-y-0
+      before:w-[3px] before:bg-[#E29A0B]
+      before:scale-y-0 before:origin-bottom
+      before:transition-transform before:duration-300
+      hover:before:scale-y-100;
+  }
+  .guests-background {
+    background: linear-gradient(
+      135deg,
+      var(--accent) 0%,
+      var(--secondary) 100%
+    );
+  }
   /* Optional hover effect */
   .btn-gradient-gold:hover,
   .btn-gradient-steel:hover,
   .btn-gradient-contrast:hover {
     filter: brightness(1.1);
     transform: translateY(-1px);
-   
+
 
   }
+  /* === Swiper pagination / bullets (improved UI/UX) === */
+  /* Default inactive bullet */
+  .swiper .swiper-pagination .swiper-pagination-bullet {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    margin: 0 6px;
+    background-color: rgba(0,0,0,0.08); /* subtle neutral */
+    transition: transform 180ms cubic-bezier(.2,.8,.2,1), background-color 160ms ease, box-shadow 160ms ease;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+  }
+
+  /* Active bullet uses the primary accent with a gentle scale and shadow */
+  .swiper .swiper-pagination .swiper-pagination-bullet-active {
+    background-color: var(--primary) !important;
+    transform: scale(1.28);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  }
+
+  /* Hover state to give affordance on desktop */
+  .swiper .swiper-pagination .swiper-pagination-bullet:hover {
+    transform: translateY(-2px) scale(1.06);
+  }
+
+  /* Make bullets keyboard-accessible and visible when focused */
+  .swiper .swiper-pagination .swiper-pagination-bullet:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 80%, white 20%);
+    outline-offset: 4px;
+  }
+
+  /* Increase tappable area without changing visual size */
+  .swiper .swiper-pagination .swiper-pagination-bullet::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: inherit;
+  }
+
+  /* Dark mode tweak: slightly brighter inactive bullets for contrast */
+  .dark .swiper .swiper-pagination .swiper-pagination-bullet {
+    background-color: rgba(255,255,255,0.08);
+  }
+
+  /* Respect reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .swiper .swiper-pagination .swiper-pagination-bullet,
+    .swiper .swiper-pagination .swiper-pagination-bullet-active {
+      transition: none !important;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+
 }

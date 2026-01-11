@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String          @unique
+  emailVerified  DateTime?
+  image          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  password       String?
+  accounts       Account[]
+  authenticators Authenticator[]
+  bookings       Booking[]
+  sessions       Session[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
+
+model Hotel {
+  id           String        @id @default(cuid())
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now())
+  branchHotels BranchHotel[]
+}
+
+model BranchHotel {
+  id        String   @id @default(cuid())
+  hotelId   String
+  address   String
+  city      String
+  street    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  rating    Float?
+  description  String?
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  rooms     Room[]
+  images   Images[]
+  amenities Amenities[]
+}
+model Images {
+  id            String      @id @default(cuid())
+  url          String
+  thumbnail    String
+  branchHotelId String
+  createdAt     DateTime    @default(now())
+  branchHotel   BranchHotel @relation(fields: [branchHotelId], references: [id])
+}
+model Amenities{
+  id            String      @id @default(cuid())
+  name  String
+  count  Int
+  branchHotelId  String
+  branchHotel  BranchHotel @relation(fields: [branchHotelId],references: [id])
+}
+model Room {
+  id            String      @id @default(cuid())
+  name          String
+  type          RoomType
+  available     Boolean
+  price         Float
+  branchHotelId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now())
+  bookings      Booking[]
+  branchHotel   BranchHotel @relation(fields: [branchHotelId], references: [id])
+}
+
+model Booking {
+  id        String        @id @default(cuid())
+  userId    String
+  roomId    String
+  checkIn   DateTime
+  checkOut  DateTime
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  status    BookingStatus
+  room      Room          @relation(fields: [roomId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+}
+
+model BookingRequest {
+   id        String        @id @default(cuid())
+   roomId String
+   branchId String
+   checkIn DateTime
+   checkOut DateTime
+   totalPrice Float
+   status BookingRequestStatus
+   stripeSessionId String?
+   roomName String
+   roomType String
+   roomPrice Float
+   createAt DateTime @default(now())
+
+}
+enum RoomType {
+  SINGLE
+  DOUBLE
+  SUITE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum BookingRequestStatus{
+  PENDING
+  PAID
+  CANCELLED
+}
+
