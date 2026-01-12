@@ -13,12 +13,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   providers: [
     GitHub({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      clientId: process.env.AUTH_GITHUB_ID!,
+      clientSecret: process.env.AUTH_GITHUB_SECRET!,
     }),
     Google({
-      clientId: process.env.GOOGLE_ID!,
-      clientSecret: process.env.GOOGLE_SECRET!,
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
     Credentials({
       name: "credentials",
@@ -31,7 +31,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             email  //creditals.email== user.email
           }
         })
-        if (!user || !user.password)  throw new Error("User not found");
+        if (!user || !user.password) throw new Error("User not found");
         const ok = await bcrypt.compare(password, user.password) //compare input password with hashed password
         if (!ok) return null;
         return user
