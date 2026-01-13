@@ -4,8 +4,9 @@ import SearchMain from "@/components/features/hotels/SearchMain";
 import { searchParamsType } from "@/types/hotelsType";
 export const dynamic = "force-dynamic";
 
-const page = async({ searchParams }: { searchParams: searchParamsType }) => {
-const params = await searchParams;
+const page = async ({ searchParams }: { searchParams: searchParamsType }) =>
+{
+  const params = await searchParams;
   const {
     name = "",
     minPrice = "0",
@@ -15,16 +16,22 @@ const params = await searchParams;
     checkOut = "",
   } = params;
 
-const query = new URLSearchParams({
+  const query = new URLSearchParams({
     name: name || "",
     minPrice: String(minPrice || "0"),
-maxPrice: String(maxPrice || "1000"),
+    maxPrice: String(maxPrice || "1000"),
     ratingGte: ratingGte || "",
     checkIn: checkIn || "",
     checkOut: checkOut || "",
   });
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (!baseUrl)
+  {
+    throw new Error("BASE_URL is not defined");
+  }
   const res = await fetch(
-    `http://localhost:3001/api/hotels/search?${query}`,
+    `${baseUrl}/api/hotels/search?${query}`,
     { cache: "no-store" }
   );
 
@@ -44,12 +51,12 @@ maxPrice: String(maxPrice || "1000"),
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/*sidebar */}
           <div className="md:col-span-1">
-            <SidebarSearch/>
+            <SidebarSearch />
           </div>
 
           {/*results */}
           <div className="md:col-span-3 grid grid-cols-2 lg:grid-cols-3 gap-3">
-            <ResultsSearch hotels={ data.data} />
+            <ResultsSearch hotels={data.data} />
           </div>
         </div>
       </section>
