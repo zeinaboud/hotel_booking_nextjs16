@@ -9,7 +9,9 @@ export class BookingError extends Error {
   }
 }
 
-interface CreateBookingRequestInput {
+interface CreateBookingRequestInput
+{
+  userId: string;
   roomId: string;
   hotelId: string;
   checkIn: string;
@@ -17,6 +19,7 @@ interface CreateBookingRequestInput {
 }
 
 export async function createBookingRequest({
+  userId,
   roomId,
   hotelId,
   checkIn,
@@ -84,6 +87,7 @@ export async function createBookingRequest({
   // Create booking request (NOT final booking)
   const bookingRequest = await prisma.bookingRequest.create({
     data: {
+      userId,
       roomId,
       branchId: hotelId,
       checkIn: ci,

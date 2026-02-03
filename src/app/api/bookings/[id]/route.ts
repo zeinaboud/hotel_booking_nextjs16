@@ -7,8 +7,8 @@ export async function GET(
   { params }: { params: { id: string } }
 )
 {
-
-  const bookingRequestId = params.id;
+  const resolve = await params;
+  const bookingRequestId = resolve.id;
 
   if (!bookingRequestId)
   {

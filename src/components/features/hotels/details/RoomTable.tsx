@@ -3,15 +3,18 @@
 import RoomTableSkeleton from "@/components/ui/Skeltons/RoomTableSketon";
 import { useHotelDetails } from "@/hooks/useHotelDetails";
 import axios from "axios";
+import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-const RoomTable = ({ hotelId }: { hotelId: string }) => {
+const RoomTable = ({ hotelId }: { hotelId: string }) =>
+{
   const router = useRouter();
   const searchParams = useSearchParams();
   const checkIn = searchParams.get("checkIn") || "";
   const checkOut = searchParams.get("checkOut") || "";
   const type = searchParams.get("type") || "";
+  const { data: session, status } = useSession();
 
   const { data: hotel, isLoading } = useHotelDetails(hotelId, { checkIn, checkOut, type });
   const [loadingRoomId, setLoadingRoomId] = useState<string | null>(null);
@@ -21,14 +24,28 @@ const RoomTable = ({ hotelId }: { hotelId: string }) => {
 
   const rooms = hotel?.rooms || [];
   if (!rooms.length) return <p>No rooms found for this search.</p>;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-  const handleBook = async (roomId: string) => {
+  if (!baseUrl)
+  {
+    throw new Error("BASE_URL is not defined");
+  }
+  const handleBook = async (roomId: string) =>
+  {
+    if (status === "loading") return;
+    if (!session?.user?.id)
+    {
+      alert("you should sign in!");
+      router.push("/signup");
+      return;
+    }
     setLoadingRoomId(roomId);
     setError(null);
 
-    try {
+    try
+    {
       // إنشاء مسودة الحجز عبر API
-      const res = await axios.post("http://localhost:3001/api/bookings/create", {
+      const res = await axios.post(`/api/bookings/create`, {
         roomId,
         hotelId,
         checkIn,
@@ -39,9 +56,11 @@ const RoomTable = ({ hotelId }: { hotelId: string }) => {
 
       // الانتقال إلى صفحة الدفع
       router.push(`/checkout?bookingRequestId=${bookingRequestId}`);
-    } catch (err: any) {
+    } catch (err: any)
+    {
       setError(err?.response?.data?.error || "Failed to create booking request");
-    } finally {
+    } finally
+    {
       setLoadingRoomId(null);
     }
   };
@@ -70,9 +89,8 @@ const RoomTable = ({ hotelId }: { hotelId: string }) => {
                 <button
                   disabled={!room.available || loadingRoomId === room.id}
                   onClick={() => handleBook(room.id)}
-                  className={`bg-primary text-white px-4 py-1 rounded ${
-                    loadingRoomId === room.id ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                  className={`bg-primary text-white px-4 py-1 rounded ${loadingRoomId === room.id ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                 >
                   {loadingRoomId === room.id ? "Booking..." : "Book"}
                 </button>

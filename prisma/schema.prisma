@@ -138,16 +138,17 @@ model Booking {
 
 model BookingRequest {
    id        String        @id @default(cuid())
+   userId    String
    roomId String
    branchId String
    checkIn DateTime
    checkOut DateTime
-   totalPrice Float
+   totalPrice Int
    status BookingRequestStatus
    stripeSessionId String?
    roomName String
    roomType String
-   roomPrice Float
+   roomPrice Int
    createAt DateTime @default(now())
 
 }

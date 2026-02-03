@@ -1,46 +1,46 @@
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 
+// نستخدم apiVersion ثابتة وآمنة
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
+  apiVersion: "2023-10-16",
 });
 
-export default async function createCheckoutSession(bookingRequestId: string)
+export default async function createCheckoutSession(
+  bookingRequestId: string
+)
 {
-  // 1. validation
-  if (!bookingRequestId)
-  {
-    throw new Error("Booking request id is required");
-  }
+  await stripe.accounts.retrieve();
+  if (!bookingRequestId) throw new Error("Booking request id is required");
 
-  // 2. get booking request
+  // جلب البيانات من DB
   const booking = await prisma.bookingRequest.findUnique({
     where: { id: bookingRequestId },
   });
 
-  if (!booking)
+  if (!booking) throw new Error("Booking request not found");
+  if (booking.status !== "PENDING") throw new Error("Booking already processed");
+  const amount = Number(booking.totalPrice);
+
+  if (isNaN(amount))
   {
-    throw new Error("Booking request not found");
+    throw new Error("Invalid totalPrice");
   }
 
-  if (booking.status !== "PENDING")
-  {
-    throw new Error("Booking already processed");
-  }
-
-  // 3. create stripe checkout session
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+
+    // تجنب automatic_payment_methods لتقليل مشاكل sandbox
     payment_method_types: ["card"],
-    currency: "aed",
+
     line_items: [
       {
         price_data: {
-          currency: "aed",
+          currency: "usd", // أو "aed" حسب حاجتك
           product_data: {
-            name: "Hotel Room Booking",
+            name: "fjhfk",
           },
-          unit_amount: Math.round(booking.totalPrice * 100),
+          unit_amount: Math.round(amount * 100), // لازم سنتات صحيحة
         },
         quantity: 1,
       },
@@ -51,18 +51,15 @@ export default async function createCheckoutSession(bookingRequestId: string)
       roomId: booking.roomId,
     },
 
-    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/cancel`,
+    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
+    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
   });
 
-  // 4. save stripe session id
+  // حفظ stripe session id في DB
   await prisma.bookingRequest.update({
     where: { id: booking.id },
-    data: {
-      stripeSessionId: session.id,
-    },
+    data: { stripeSessionId: session.id },
   });
 
-  // 5. return checkout url
   return session.url;
 }

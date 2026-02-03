@@ -1,10 +1,11 @@
-/*"use client";
+"use client";
 
 import axios from "axios";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-interface BookingRequestData {
+interface BookingRequestData
+{
   checkIn: string;
   checkOut: string;
   totalPrice: number;
@@ -15,7 +16,8 @@ interface BookingRequestData {
   hotelName: string;
 }
 
-const CheckoutPage = () => {
+const CheckoutPage = () =>
+{
   const searchParams = useSearchParams();
   const bookingRequestId = searchParams.get("bookingRequestId");
 
@@ -23,26 +25,33 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [uiError, setUiError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!bookingRequestId) {
+  useEffect(() =>
+  {
+    if (!bookingRequestId)
+    {
       setUiError("Missing booking request ID");
       setLoading(false);
       return;
     }
 
-    const fetchBookingRequest = async () => {
-      try {
+    const fetchBookingRequest = async () =>
+    {
+      try
+      {
         const res = await axios.get(`http://localhost:3001/api/bookings/${bookingRequestId}`);
-        if (!res.data?.data?.bookingRequest) {
+        if (!res.data?.data?.bookingRequest)
+        {
           throw new Error("Booking request not found");
         }
 
         // هنا نستخدم بيانات المسودة فقط
         setData(res.data.data.bookingRequest);
-      } catch (err: any) {
+      } catch (err: any)
+      {
         console.error(err);
         setUiError(err?.response?.data?.error || err?.message || "Failed to fetch booking request");
-      } finally {
+      } finally
+      {
         setLoading(false);
       }
     };
@@ -50,19 +59,22 @@ const CheckoutPage = () => {
     fetchBookingRequest();
   }, [bookingRequestId]);
 
-  const handlePay = async () => {
+  const handlePay = async () =>
+  {
     if (!data || !bookingRequestId) return;
 
-    try {
+    try
+    {
       const res = await axios.post("http://localhost:3001/api/checkout/create-session", {
         bookingRequestId,
       });
 
-      const url = res.data?.data?.url;
+      const url = res.data?.url;
       if (!url) throw new Error("No session URL returned");
 
       window.location.href = url;
-    } catch (err: any) {
+    } catch (err: any)
+    {
       console.error(err);
       setUiError(err?.response?.data?.error || err?.message || "Failed to start payment.");
     }
@@ -74,14 +86,14 @@ const CheckoutPage = () => {
 
   const nights = Math.ceil(
     (new Date(data.checkOut).getTime() - new Date(data.checkIn).getTime()) /
-      (1000 * 60 * 60 * 24)
+    (1000 * 60 * 60 * 24)
   );
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
+    <div className="max-w-2xl p-6 mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Checkout</h1>
 
-      <div className="p-4 border rounded-md space-y-3 bg-gray-50">
+      <div className="p-4 space-y-3 border rounded-md bg-gray-50">
         <h2 className="text-xl font-semibold">
           <strong>Hotel name:</strong> {data.hotelName}
         </h2>
@@ -102,7 +114,7 @@ const CheckoutPage = () => {
 
       <button
         onClick={handlePay}
-        className="w-full bg-blue-600 text-white p-3 rounded-md"
+        className="w-full p-3 text-white bg-blue-600 rounded-md"
       >
         Proceed to Payment
       </button>
@@ -110,14 +122,4 @@ const CheckoutPage = () => {
   );
 };
 
-export default CheckoutPage;*/
-
-const CheckoutPage = () =>
-{
-  return (
-    <>
-      <p>jfnekj</p>
-    </>
-  )
-}
 export default CheckoutPage;

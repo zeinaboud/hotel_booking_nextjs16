@@ -50,27 +50,28 @@ export async function getHotelDetailsService(
     {
       roomWhere.type = type.toUpperCase();
     }
-     if (checkIn && checkOut) {
-    const ci = new Date(checkIn);
-    const co = new Date(checkOut);
+    if (checkIn && checkOut)
+    {
+      const ci = new Date(checkIn);
+      const co = new Date(checkOut);
 
-    roomWhere.AND = [
-      { available: true },
-      {
-        NOT: {
-          bookings: {
-            some: {
-              AND: [
-                { checkIn: { lt: co } },
-                { checkOut: { gt: ci } },
-              ],
+      roomWhere.AND = [
+        { available: true },
+        {
+          NOT: {
+            bookings: {
+              some: {
+                AND: [
+                  { checkIn: { lt: co } },
+                  { checkOut: { gt: ci } },
+                ],
+              },
             },
           },
         },
-      },
-    ];
+      ];
 
-     }
+    }
     const hotel = await prisma?.branchHotel.findUnique({
       where: { id },
       include: {
