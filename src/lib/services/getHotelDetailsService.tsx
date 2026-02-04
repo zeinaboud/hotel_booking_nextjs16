@@ -28,7 +28,7 @@
  *   }
  * - Returns null if no matching hotel is found.
  */
-
+import { prisma } from "@/lib/prisma";
 export async function getHotelDetailsService(
   id: string,
   opts: {
@@ -72,7 +72,7 @@ export async function getHotelDetailsService(
       ];
 
     }
-    const hotel = await prisma?.branchHotel.findUnique({
+    const hotel = await prisma.branchHotel.findUnique({
       where: { id },
       include: {
         hotel: true,
