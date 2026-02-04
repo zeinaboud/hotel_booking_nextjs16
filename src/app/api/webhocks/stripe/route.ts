@@ -27,16 +27,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
 
-
-  if (event.type === "checkout.session.completed") {
+   if (event.type === "checkout.session.completed") {
+  try {
     const session = event.data.object as Stripe.Checkout.Session;
-
     const bookingRequestId = session.metadata?.bookingRequestId;
 
     if (!bookingRequestId) {
-      return NextResponse.json({ error: "Missing bookingRequestId" }, { status: 400 });
+      throw new Error("Missing bookingRequestId");
     }
-    const bookingRequest =  await prisma.bookingRequest.update({
+
+    const bookingRequest = await prisma.bookingRequest.findUnique({
+      where: { id: bookingRequestId },
+    });
+
+    if (!bookingRequest) {
+      throw new Error("BookingRequest not found");
+    }
+
+    if (bookingRequest.status === "CONFIRMED") {
+      return NextResponse.json({ received: true });
+    }
+
+    const room = await prisma.room.findUnique({
+      where: { id: bookingRequest.roomId },
+    });
+
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    await prisma.bookingRequest.update({
       where: { id: bookingRequestId },
       data: {
         status: "CONFIRMED",
@@ -48,13 +68,17 @@ export async function POST(req: NextRequest) {
       data: {
         userId: bookingRequest.userId,
         roomId: bookingRequest.roomId,
-        checkIn: new Date(bookingRequest.checkIn),
-        checkOut: new Date(bookingRequest.checkOut),
+        checkIn: bookingRequest.checkIn,
+        checkOut: bookingRequest.checkOut,
         status: "CONFIRMED",
       },
     });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    return NextResponse.json({ error: "Webhook failed" }, { status: 500 });
   }
-  console.log("Stripe event type:", event.type);
+}
+
 
 
   return NextResponse.json({ received: true });
