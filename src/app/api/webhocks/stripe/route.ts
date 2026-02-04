@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
     const bookingRequest =  await prisma.bookingRequest.update({
       where: { id: bookingRequestId },
       data: {
-        status: "PAID",
+        status: "CONFIRMED",
+        stripeSessionId: session.id,
       },
     });
 
@@ -47,12 +48,14 @@ export async function POST(req: NextRequest) {
       data: {
         userId: bookingRequest.userId,
         roomId: bookingRequest.roomId,
-        checkIn: bookingRequest.checkIn,
-        checkOut: bookingRequest.checkOut,
+        checkIn: new Date(bookingRequest.checkIn),
+        checkOut: new Date(bookingRequest.checkOut),
         status: "CONFIRMED",
       },
     });
   }
+  console.log("Stripe event type:", event.type);
+
 
   return NextResponse.json({ received: true });
 }

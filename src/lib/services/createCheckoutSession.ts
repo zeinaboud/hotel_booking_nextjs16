@@ -51,8 +51,8 @@ export default async function createCheckoutSession(
       roomId: booking.roomId,
     },
 
-    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
+    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkoutProccess/success`,
+    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkoutProccess/success`,
   });
 
   // حفظ stripe session id في DB
