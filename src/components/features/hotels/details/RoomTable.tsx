@@ -55,7 +55,7 @@ const RoomTable = ({ hotelId }: { hotelId: string }) =>
       const { bookingRequestId } = res.data.data;
 
       // الانتقال إلى صفحة الدفع
-      router.push(`/checkout?bookingRequestId=${bookingRequestId}`);
+      router.push(`/checkoutProccess?bookingRequestId=${bookingRequestId}`);
     } catch (err: any)
     {
       setError(err?.response?.data?.error || "Failed to create booking request");
