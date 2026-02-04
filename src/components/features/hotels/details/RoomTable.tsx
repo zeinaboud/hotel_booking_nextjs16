@@ -24,12 +24,7 @@ const RoomTable = ({ hotelId }: { hotelId: string }) =>
 
   const rooms = hotel?.rooms || [];
   if (!rooms.length) return <p>No rooms found for this search.</p>;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-  if (!baseUrl)
-  {
-    throw new Error("BASE_URL is not defined");
-  }
   const handleBook = async (roomId: string) =>
   {
     if (status === "loading") return;
@@ -45,7 +40,7 @@ const RoomTable = ({ hotelId }: { hotelId: string }) =>
     try
     {
       // إنشاء مسودة الحجز عبر API
-      const res = await axios.post(`${baseUrl}/api/bookings/create`, {
+      const res = await axios.post(`/api/bookings/create`, {
         roomId,
         hotelId,
         checkIn,
@@ -55,7 +50,7 @@ const RoomTable = ({ hotelId }: { hotelId: string }) =>
       const { bookingRequestId } = res.data.data;
 
       // الانتقال إلى صفحة الدفع
-      router.push(`${baseUrl}/checkoutProccess?bookingRequestId=${bookingRequestId}`);
+      router.push(`/checkoutProccess?bookingRequestId=${bookingRequestId}`);
     } catch (err: any)
     {
       setError(err?.response?.data?.error || "Failed to create booking request");
