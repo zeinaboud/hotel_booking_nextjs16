@@ -45,7 +45,7 @@ const RoomTable = ({ hotelId }: { hotelId: string }) =>
     try
     {
       // إنشاء مسودة الحجز عبر API
-      const res = await axios.post(`/api/bookings/create`, {
+      const res = await axios.post(`${baseUrl}/api/bookings/create`, {
         roomId,
         hotelId,
         checkIn,
@@ -55,7 +55,7 @@ const RoomTable = ({ hotelId }: { hotelId: string }) =>
       const { bookingRequestId } = res.data.data;
 
       // الانتقال إلى صفحة الدفع
-      router.push(`/checkoutProccess?bookingRequestId=${bookingRequestId}`);
+      router.push(`${baseUrl}/checkoutProccess?bookingRequestId=${bookingRequestId}`);
     } catch (err: any)
     {
       setError(err?.response?.data?.error || "Failed to create booking request");

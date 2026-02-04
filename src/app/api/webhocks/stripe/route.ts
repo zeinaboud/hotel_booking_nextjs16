@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
 
-  // نهمنا فقط هذا الحدث
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
@@ -36,10 +36,20 @@ export async function POST(req: NextRequest) {
     if (!bookingRequestId) {
       return NextResponse.json({ error: "Missing bookingRequestId" }, { status: 400 });
     }
-    await prisma.bookingRequest.update({
+    const bookingRequest =  await prisma.bookingRequest.update({
       where: { id: bookingRequestId },
       data: {
         status: "PAID",
+      },
+    });
+
+    await prisma.booking.create({
+      data: {
+        userId: bookingRequest.userId,
+        roomId: bookingRequest.roomId,
+        checkIn: bookingRequest.checkIn,
+        checkOut: bookingRequest.checkOut,
+        status: "CONFIRMED",
       },
     });
   }
