@@ -34,19 +34,20 @@ export async function POST(req: NextRequest) {
   try {
     const session = event.data.object as Stripe.Checkout.Session;
     const bookingRequestId = session.metadata?.bookingRequestId;
+    console.log(bookingRequestId);
     if (!bookingRequestId) throw new Error("Missing bookingRequestId");
 
-    const bookingRequest = await prisma.bookingRequest.findUnique({
+    const bookingRequesTable = await prisma.bookingRequest.findUnique({
       where: { id: bookingRequestId },
     });
-    if (!bookingRequest) throw new Error("BookingRequest not found");
+    if (!bookingRequesTable) throw new Error("BookingRequest not found");
 
-    if (bookingRequest.status === "CONFIRMED") {
+    if (bookingRequesTable.status === "CONFIRMED") {
       return NextResponse.json({ received: true });
     }
 
     const room = await prisma.room.findUnique({
-      where: { id: bookingRequest.roomId },
+      where: { id: bookingRequesTable.roomId },
     });
     if (!room) throw new Error("Room not found");
 
@@ -58,19 +59,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await prisma.booking.create({
-      data: {
-        userId: bookingRequest.userId,
-        roomId: bookingRequest.roomId,
-        checkIn: new Date(bookingRequest.checkIn),
-        checkOut: new Date(bookingRequest.checkOut),
-        status: "CONFIRMED",
-      },
-    });
+
 
     return NextResponse.json({ received: true });
   } catch (err: any) {
     console.error("Webhook processing error:", err.message);
-    return NextResponse.json({ error: "Webhook failed" }, { status: 500 });
+    return NextResponse.json({ error: "Webhook failed" }, { status: 400 });
   }
 }
