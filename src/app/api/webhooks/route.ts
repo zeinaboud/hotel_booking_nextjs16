@@ -24,10 +24,16 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: any) {
     console.error("Signature verification failed:", err.message);
-    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
+    console.error("Signature verification failed:", err?.message ?? err);
   }
 
   if (event.type !== "checkout.session.completed") {
+  // Helpful logs for debugging delivered events
+  try {
+    console.log(`Stripe event received: id=${event.id} type=${event.type}`);
+  } catch (e) {
+    console.log("Stripe event received (unable to stringify id/type)", e);
+  }
     return NextResponse.json({ received: true });
   }
 
@@ -36,12 +42,13 @@ export async function POST(req: NextRequest) {
     const bookingRequestId = session.metadata?.bookingRequestId;
     console.log(bookingRequestId);
     if (!bookingRequestId) throw new Error("Missing bookingRequestId");
-
+    console.log("bookingRequestId from metadata:", bookingRequestId);
     const bookingRequesTable = await prisma.bookingRequest.findUnique({
       where: { id: bookingRequestId },
     });
     if (!bookingRequesTable) throw new Error("BookingRequest not found");
 
+    console.log("bookingRequest row:", bookingRequesTable);
     if (bookingRequesTable.status === "CONFIRMED") {
       return NextResponse.json({ received: true });
     }
