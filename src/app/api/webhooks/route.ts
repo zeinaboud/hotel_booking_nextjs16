@@ -59,6 +59,23 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Create actual booking record (final booking) based on the confirmed request
+    await prisma.booking.create({
+      data: {
+        userId: bookingRequesTable.userId,
+        roomId: bookingRequesTable.roomId,
+        checkIn: bookingRequesTable.checkIn,
+        checkOut: bookingRequesTable.checkOut,
+        status: "CONFIRMED",
+      },
+    });
+
+    // Optionally mark room as not available
+    await prisma.room.update({
+      where: { id: bookingRequesTable.roomId },
+      data: { available: false },
+    });
+
 
 
     return NextResponse.json({ received: true });
