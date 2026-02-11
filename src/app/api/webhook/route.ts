@@ -1,69 +1,70 @@
-import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
+import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: '2025-12-15.clover' as Stripe.LatestApiVersion,
 });
 
 export async function POST(req: NextRequest) {
+  console.log('Webhook route POST invoked');
+
   const body = await req.text();
-  const signature = req.headers.get("stripe-signature");
+  const signature = req.headers.get('stripe-signature');
 
-  if (!signature) {
-    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  let event: Stripe.Event | null = null;
+  const canBypassSignature =
+    process.env.NODE_ENV !== 'production' && !process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (canBypassSignature) {
+    try {
+      event = JSON.parse(body) as Stripe.Event;
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid event body' }, { status: 400 });
+    }
+  } else {
+    if (!signature) return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
+    } catch (err: any) {
+      console.error('Signature verification failed:', err.message);
+      return NextResponse.json({ error: 'Webhook error' }, { status: 400 });
+    }
   }
 
-  let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err: any) {
-    console.error("Signature verification failed:", err.message);
-    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
-  }
-
-  if (event.type !== "checkout.session.completed") {
+  if (event.type !== 'checkout.session.completed') {
     return NextResponse.json({ received: true });
   }
 
   try {
     const session = event.data.object as Stripe.Checkout.Session;
     const bookingRequestId = session.metadata?.bookingRequestId;
-    console.log(bookingRequestId);
-    if (!bookingRequestId) throw new Error("Missing bookingRequestId");
 
-    const bookingRequesTable = await prisma.bookingRequest.findUnique({
-      where: { id: bookingRequestId },
-    });
-    if (!bookingRequesTable) throw new Error("BookingRequest not found");
-
-    if (bookingRequesTable.status === "CONFIRMED") {
+    if (!bookingRequestId) {
+      console.warn('Missing bookingRequestId, skipping processing.');
       return NextResponse.json({ received: true });
     }
 
-    const room = await prisma.room.findUnique({
-      where: { id: bookingRequesTable.roomId },
-    });
-    if (!room) throw new Error("Room not found");
-
-    await prisma.bookingRequest.update({
+    // تحديث حالة BookingRequest مباشرة
+    const updatedBooking = await prisma.bookingRequest.update({
       where: { id: bookingRequestId },
       data: {
-        status: "CONFIRMED",
+        status: 'CONFIRMED',
         stripeSessionId: session.id,
       },
     });
 
+    console.log('✅ BookingRequest updated to CONFIRMED:', updatedBooking.id);
 
+    // تحديث غرفة لتصبح غير متاحة
+    await prisma.room.update({
+      where: { id: updatedBooking.roomId },
+      data: { available: false },
+    });
 
     return NextResponse.json({ received: true });
   } catch (err: any) {
-    console.error("Webhook processing error:", err.message);
-    return NextResponse.json({ error: "Webhook failed" }, { status: 400 });
+    console.error('Webhook processing error:', err.message ?? err);
+    return NextResponse.json({ error: 'Webhook failed' }, { status: 400 });
   }
 }
