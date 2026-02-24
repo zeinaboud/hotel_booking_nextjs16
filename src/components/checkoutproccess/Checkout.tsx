@@ -1,25 +1,34 @@
-"use client";
+'use client';
 
-import axios from "axios";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import axios from 'axios';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-interface BookingRequestData {
-  checkIn: string;
-  checkOut: string;
-  totalPrice: number;
-  status: string;
+interface RoomItem {
+  roomId: string;
   roomName: string;
   roomType: string;
   roomPrice: number;
-  hotelName: string;
+  quantity: number;
+}
+interface hotel {
+  name: string;
+}
+interface BookingRequestData {
+  id: string;
+  checkIn: string;
+  checkOut: string;
+  totalPrice: number;
+  nights: number;
+  items: RoomItem[];
+  branch: hotel;
 }
 
 const Checkout = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""; // fallback لتجنب crash
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''; // fallback لتجنب crash
 
   const searchParams = useSearchParams();
-  const bookingRequestId = searchParams.get("bookingRequestId");
+  const bookingRequestId = searchParams.get('bookingRequestId');
 
   const [data, setData] = useState<BookingRequestData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +36,8 @@ const Checkout = () => {
 
   useEffect(() => {
     if (!bookingRequestId) {
-      setUiError("Missing booking request ID");
+      setUiError('Missing booking request ID');
+      console.log(res.data);
       setLoading(false);
       return;
     }
@@ -35,14 +45,20 @@ const Checkout = () => {
     const fetchBookingRequest = async () => {
       try {
         const res = await axios.get(`${baseUrl}/api/bookings/${bookingRequestId}`);
-        if (!res.data?.data?.bookingRequest) {
-          throw new Error("Booking request not found");
-        }
-
-        setData(res.data.data.bookingRequest);
+        const booking = res.data?.data?.bookingRequest;
+        if (!booking) throw new Error('Booking request not found');
+        console.log(booking);
+        const items = booking.items.map((item: any) => ({
+          roomId: item.roomId,
+          roomName: item.room.name,
+          roomType: item.room.type,
+          roomPrice: item.room.price,
+          quantity: item.quantity,
+        }));
+        setData({ ...booking, items });
       } catch (err: any) {
         console.error(err);
-        setUiError(err?.response?.data?.error || err?.message || "Failed to fetch booking request");
+        setUiError(err?.response?.data?.error || err?.message || 'Failed to fetch booking request');
       } finally {
         setLoading(false);
       }
@@ -60,15 +76,15 @@ const Checkout = () => {
       });
 
       const url = res.data?.url;
-      if (!url) throw new Error("No session URL returned");
+      if (!url) throw new Error('No session URL returned');
 
       // redirect فقط في client event handler
-      if (typeof window !== "undefined") {
+      if (typeof window !== 'undefined') {
         window.location.href = url;
       }
     } catch (err: any) {
       console.error(err);
-      setUiError(err?.response?.data?.error || err?.message || "Failed to start payment.");
+      setUiError(err?.response?.data?.error || err?.message || 'Failed to start payment.');
     }
   };
 
@@ -82,28 +98,30 @@ const Checkout = () => {
 
       <div className="p-4 space-y-3 border rounded-md bg-gray-50">
         <h2 className="text-xl font-semibold">
-          <strong>Hotel name:</strong> {data.hotelName}
+          <strong>Hotel name:</strong> {data.branch?.name}
         </h2>
 
         <div>
-          <p className="font-medium"><strong>Room Name:</strong> {data.roomName}</p>
-          <p className="text-gray-600"><strong>Type:</strong> {data.roomType}</p>
-          <p className="text-gray-600"><strong>Price per night:</strong> ${data.roomPrice}</p>
-        </div>
-
-        <div className="space-y-1">
-          <p><strong>Check-in:</strong> {data.checkIn}</p>
-          <p><strong>Check-out:</strong> {data.checkOut}</p>
-          {/* لو بدك تحسب الليالي بدل 8 ثابت */}
-          <p><strong>Nights:</strong> {calculateNights(data.checkIn, data.checkOut)}</p>
-          <p><strong>Total Price:</strong> ${data.totalPrice}</p>
+          {data.items.map((item) => (
+            <div key={item.roomId}>
+              <p className="font-medium">
+                <strong>Room Name:</strong> {item.roomName}
+              </p>
+              <p className="text-gray-600">
+                <strong>Type:</strong> {item.roomType}
+              </p>
+              <p className="text-gray-600">
+                <strong>Price per night:</strong> ${item.roomPrice}
+              </p>
+              <p className="text-gray-600">
+                <strong>Quantity:</strong> {item.quantity}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
-      <button
-        onClick={handlePay}
-        className="w-full p-3 text-white bg-blue-600 rounded-md"
-      >
+      <button onClick={handlePay} className="w-full p-3 text-white bg-blue-600 rounded-md">
         Proceed to Payment
       </button>
     </div>

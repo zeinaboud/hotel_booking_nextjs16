@@ -1,87 +1,108 @@
+import { prisma } from '@/lib/prisma';
 
+export interface RoomTypeItem {
+  type: string;
+  price: number;
+  availableQuantity: number;
+  rooms: any[]; // array of actual room objects
+}
 
-/**
- *
- * Service: getHotelDetailsService
- *
- * Description:
- * Fetches full hotel details from the database using the provided hotel ID.
- * This service is separated from API routes to allow reuse across the system
- * including server components, API handlers, or background jobs.
- *
- * Parameters:
- * - id (string): The unique identifier of the hotel/branch record.
- *
- * Behavior:
- * - Validates that an ID was provided.
- * - Queries the database for a matching hotel record using Prisma.
- * - Includes related hotel information and room list in the response.
- *
- *
- * Returns:
- * - A hotel object containing:
- *   {
- *     id: string,
- *     hotel: {...},
- *     rooms: [...],
- *     ...other fields
- *   }
- * - Returns null if no matching hotel is found.
- */
-import { prisma } from "@/lib/prisma";
 export async function getHotelDetailsService(
-  id: string,
-  opts: {
-    checkIn?: string,
-    checkOut?: string,
-    type?: string
-  } = {}
-)
-{
-  const { checkIn, checkOut, type } = opts
-  {
-    if (!id)
-    {
-      throw new Error("hotel id is required")
-    }
-    //room availability filter
-    const roomWhere: any = {};
-    if (type)
-    {
-      roomWhere.type = type.toUpperCase();
-    }
-    if (checkIn && checkOut)
-    {
-      const ci = new Date(checkIn);
-      const co = new Date(checkOut);
+  branchHotelId: string,
+  opts: { checkIn?: string; checkOut?: string; type?: string } = {},
+) {
+  const { checkIn, checkOut, type } = opts;
 
-      roomWhere.AND = [
-        { available: true },
-        {
-          NOT: {
-            bookings: {
-              some: {
-                AND: [
-                  { checkIn: { lt: co } },
-                  { checkOut: { gt: ci } },
-                ],
-              },
-            },
-          },
-        },
-      ];
+  if (!branchHotelId) throw new Error('BranchHotel ID is required');
 
-    }
-    const hotel = await prisma.branchHotel.findUnique({
-      where: { id },
-      include: {
-        hotel: true,
-        rooms: Object.keys(roomWhere).length ? { where: roomWhere } : true,
-        images: true,
-        amenities: true,
-      }
+  // 1️⃣ جلب كل الغرف للفرع، optionally filter by type
+  const allRooms = await prisma.room.findMany({
+    where: {
+      branchHotelId,
+      ...(type ? { type: type.toUpperCase() } : {}),
+    },
+  });
 
+  if (allRooms.length === 0) {
+    // لا توجد غرف إطلاقاً
+    const branchHotel = await prisma.branchHotel.findUnique({
+      where: { id: branchHotelId },
+      include: { hotel: true, images: true, amenities: true },
     });
-    return hotel;
+    return { ...branchHotel, rooms: [] };
   }
+
+  // 2️⃣ تحويل checkIn/checkOut إلى Dates صحيحة
+  let ci: Date | null = null;
+  let co: Date | null = null;
+
+  if (checkIn && checkOut) {
+    ci = new Date(checkIn);
+    co = new Date(checkOut);
+    ci.setHours(0, 0, 0, 0);
+    co.setHours(23, 59, 59, 999);
+
+    if (isNaN(ci.getTime()) || isNaN(co.getTime()) || ci >= co) {
+      throw new Error('Invalid check-in/check-out dates');
+    }
+  }
+
+  // 3️⃣ جلب كل BookingItems المرتبطة بالغرف الموجودة
+  const bookingItems = await prisma.bookingItem.findMany({
+    where: {
+      roomId: { in: allRooms.map((r) => r.id) },
+      bookingRequest: {
+        is: {
+          status: { in: ['CONFIRMED', 'PENDING'] },
+          ...(ci && co
+            ? {
+                OR: [
+                  { checkIn: { lt: co }, checkOut: { gt: ci }, status: 'CONFIRMED' },
+                  {
+                    checkIn: { lt: co },
+                    checkOut: { gt: ci },
+                    status: 'PENDING',
+                    expireAt: { gte: new Date() },
+                  },
+                ],
+              }
+            : {}),
+        },
+      },
+    },
+  });
+
+  // 4️⃣ إنشاء خريطة الغرف حسب النوع
+  const roomMap: Record<string, RoomTypeItem> = {};
+
+  allRooms.forEach((room) => {
+    const bookedQty = bookingItems
+      .filter((b) => b.roomId === room.id)
+      .reduce((sum, b) => sum + b.quantity, 0);
+
+    const availableQty = room.totalQuantity - bookedQty;
+
+    if (!roomMap[room.type]) {
+      roomMap[room.type] = {
+        type: room.type,
+        price: room.price,
+        availableQuantity: 0,
+        rooms: [],
+      };
+    }
+
+    roomMap[room.type].availableQuantity += availableQty;
+    roomMap[room.type].rooms.push({ ...room, availableQty });
+  });
+
+  // 5️⃣ جلب تفاصيل الفرع بالكامل
+  const branchHotel = await prisma.branchHotel.findUnique({
+    where: { id: branchHotelId },
+    include: { hotel: true, images: true, amenities: true },
+  });
+
+  return {
+    ...branchHotel,
+    rooms: Object.values(roomMap),
+  };
 }

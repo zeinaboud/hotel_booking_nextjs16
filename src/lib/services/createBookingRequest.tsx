@@ -1,108 +1,142 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/prisma';
+import { BookingItem, BookingRequestStatus, Room } from '@prisma/client';
 
 export class BookingError extends Error {
   status: number;
-
   constructor(message: string, status = 400) {
     super(message);
     this.status = status;
   }
 }
 
-interface CreateBookingRequestInput
-{
+interface CreateBookingRequestInput {
   userId: string;
-  roomId: string;
-  hotelId: string;
+  roomType: 'SINGLE' | 'DOUBLE' | 'SUITE';
+  hotelId: string; // BranchHotel ID
   checkIn: string;
   checkOut: string;
+  quantity: number;
 }
+
+type RoomWithBookings = Room & { bookings: BookingItem[] };
 
 export async function createBookingRequest({
   userId,
-  roomId,
+  roomType,
   hotelId,
   checkIn,
   checkOut,
+  quantity,
 }: CreateBookingRequestInput) {
-
-  //  Validation
-  if (!roomId || !hotelId || !checkIn || !checkOut) {
-    throw new BookingError("Missing booking data");
+  if (!roomType || !hotelId || !checkIn || !checkOut || !quantity || quantity <= 0) {
+    throw new BookingError('Missing or invalid booking data');
   }
 
   const ci = new Date(checkIn);
   const co = new Date(checkOut);
-
-  if (isNaN(ci.getTime()) || isNaN(co.getTime())) {
-    throw new BookingError("Invalid date format");
+  if (isNaN(ci.getTime()) || isNaN(co.getTime()) || ci >= co) {
+    throw new BookingError('Invalid check-in or check-out dates');
   }
 
-  if (ci >= co) {
-    throw new BookingError("Check-out must be after check-in");
-  }
+  const nights = (co.getTime() - ci.getTime()) / (1000 * 60 * 60 * 24);
+  if (nights <= 0) throw new BookingError('Invalid booking period');
 
-  // Fetch room + check availability
-  const room = await prisma.room.findFirst({
-    where: {
-      id: roomId,
-      branchHotelId: hotelId,
-      available: true,
-    },
-    include: {
-      bookings: {
-        where: {
-          AND: [
-            { checkIn: { lt: co } },
-            { checkOut: { gt: ci } },
-          ],
+  return await prisma.$transaction(async (tx) => {
+    // تنظيف الحجوزات المعلقة المنتهية
+    await tx.bookingRequest.updateMany({
+      where: {
+        status: BookingRequestStatus.PENDING,
+        expireAt: { lt: new Date() },
+      },
+      data: { status: BookingRequestStatus.CANCELLED },
+    });
+
+    // جلب كل الغرف من النوع المطلوب مع الحجوزات المتداخلة
+    const rooms: RoomWithBookings[] = await tx.room.findMany({
+      where: { branchHotelId: hotelId, type: roomType },
+      include: {
+        bookings: {
+          where: {
+            bookingRequest: {
+              OR: [
+                {
+                  status: BookingRequestStatus.CONFIRMED,
+                  checkIn: { lt: co },
+                  checkOut: { gt: ci },
+                },
+                {
+                  status: BookingRequestStatus.PENDING,
+                  expireAt: { gt: new Date() },
+                  checkIn: { lt: co },
+                  checkOut: { gt: ci },
+                },
+              ],
+            },
+          },
         },
       },
-    },
-  });
+    });
 
-  if (!room) {
-    throw new BookingError("Room not found or not available");
-  }
+    if (rooms.length === 0) throw new BookingError('No rooms of this type found');
 
-  if (room.bookings.length > 0) {
-    throw new BookingError("Room is already booked for selected dates");
-  }
+    // توزيع الكمية المطلوبة على الغرف المتاحة
+    let remainingQty = quantity;
+    const roomsToBook: { roomId: string; qty: number }[] = [];
 
-  // Calculate nights
-  const nights =
-    (co.getTime() - ci.getTime()) / (1000 * 60 * 60 * 24);
+    for (const room of rooms) {
+      const bookedQty = room.bookings.reduce((sum, b) => sum + b.quantity, 0);
+      const availableQty = room.totalQuantity - bookedQty;
+      if (availableQty > 0) {
+        const qtyToBook = Math.min(availableQty, remainingQty);
+        roomsToBook.push({ roomId: room.id, qty: qtyToBook });
+        remainingQty -= qtyToBook;
+        if (remainingQty <= 0) break;
+      }
+    }
 
-  if (nights <= 0) {
-    throw new BookingError("Invalid booking duration");
-  }
+    if (remainingQty > 0) {
+      throw new BookingError('Not enough rooms available for the selected type');
+    }
 
-  // Calculate total price
-  const totalPrice = Math.round(room.price * nights);
+    // إنشاء طلب الحجز مرة واحدة فقط
+    const bookingRequest = await tx.bookingRequest.create({
+      data: {
+        userId,
+        branchId: hotelId,
+        checkIn: ci,
+        checkOut: co,
+        totalPrice: 0, // سنقوم بحسابه بعد إنشاء الـ BookingItem
+        status: BookingRequestStatus.PENDING,
+        expireAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    });
 
-  if (totalPrice <= 0) {
-    throw new BookingError("Invalid total price");
-  }
+    // إنشاء BookingItem لكل غرفة وحساب السعر الإجمالي
+    let totalPrice = 0;
+    for (const b of roomsToBook) {
+      const room = rooms.find((r) => r.id === b.roomId)!;
+      const price = Math.round(nights * room.price * b.qty);
+      totalPrice += price;
 
-  // Create booking request (NOT final booking)
-  const bookingRequest = await prisma.bookingRequest.create({
-    data: {
-      userId,
-      roomId,
-      branchId: hotelId,
-      checkIn: ci,
-      checkOut: co,
+      await tx.bookingItem.create({
+        data: {
+          bookingRequestId: bookingRequest.id,
+          roomId: room.id,
+          quantity: b.qty,
+        },
+      });
+    }
+
+    // تحديث السعر الإجمالي للـ BookingRequest
+    await tx.bookingRequest.update({
+      where: { id: bookingRequest.id },
+      data: { totalPrice },
+    });
+
+    return {
+      bookingRequest,
       totalPrice,
-      status: "PENDING",
-      roomName: room.name,
-      roomType: room.type,
-      roomPrice: room.price,
-    },
+      nights,
+    };
   });
-
-  return {
-    bookingRequestId: bookingRequest.id,
-    nights,
-    totalPrice,
-  };
 }

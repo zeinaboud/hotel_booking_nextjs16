@@ -94,6 +94,7 @@ model BranchHotel {
   rooms     Room[]
   images   Images[]
   amenities Amenities[]
+  bookingRequests BookingRequest[]
 }
 model Images {
   id            String      @id @default(cuid())
@@ -114,12 +115,12 @@ model Room {
   id            String      @id @default(cuid())
   name          String
   type          RoomType
-  available     Boolean
   price         Float
   branchHotelId String
+  totalQuantity Int
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @default(now())
-  bookings      BookingRequest[]
+  bookings      BookingItem[]
   branchHotel   BranchHotel @relation(fields: [branchHotelId], references: [id])
 }
 
@@ -127,21 +128,28 @@ model Room {
 model BookingRequest {
    id        String        @id @default(cuid())
    userId    String
-   roomId String
    branchId String
    checkIn DateTime
    checkOut DateTime
    totalPrice Int
    status BookingRequestStatus
    stripeSessionId String?
-   roomName String
-   roomType String
-   roomPrice Int
+   items     BookingItem[] @relation("BookingRequest_Items")
    createAt DateTime @default(now())
-   room      Room          @relation(fields: [roomId], references: [id])
+   expireAt DateTime?
    user      User          @relation(fields: [userId], references: [id])
+   branch    BranchHotel @relation(fields: [branchId], references: [id])
+   @@index([status])
 }
-
+model BookingItem{
+  id String @id @default(cuid())
+  bookingRequestId String
+  roomId String
+  quantity Int
+  bookingRequest    BookingRequest @relation(fields: [bookingRequestId], references: [id], name: "BookingRequest_Items")
+  room              Room @relation(fields: [roomId], references: [id])
+  @@index([roomId])
+}
 enum RoomType {
   SINGLE
   DOUBLE

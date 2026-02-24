@@ -1,33 +1,33 @@
 // src/app/api/bookings/[id]/route.ts
-import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-)
-{
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   const resolve = await params;
   const bookingRequestId = resolve.id;
 
-  if (!bookingRequestId)
-  {
-    return NextResponse.json(
-      { error: "Missing bookingRequestId" },
-      { status: 400 }
-    );
+  if (!bookingRequestId) {
+    return NextResponse.json({ error: 'Missing bookingRequestId' }, { status: 400 });
   }
 
   const bookingRequest = await prisma.bookingRequest.findUnique({
     where: { id: bookingRequestId },
+    include: {
+      branch: {
+        include: {
+          hotel: true,
+        },
+      },
+      items: {
+        include: {
+          room: true,
+        },
+      },
+    },
   });
 
-  if (!bookingRequest)
-  {
-    return NextResponse.json(
-      { error: "Booking request not found" },
-      { status: 404 }
-    );
+  if (!bookingRequest) {
+    return NextResponse.json({ error: 'Booking request not found' }, { status: 404 });
   }
 
   return NextResponse.json({

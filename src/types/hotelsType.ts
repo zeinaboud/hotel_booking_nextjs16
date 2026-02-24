@@ -1,14 +1,11 @@
-
-export interface RoomData
-{
+export interface RoomData {
   id: string;
   name: string;
   price: number;
   available: boolean;
-  type: "SINGLE" | "DOUBLE" | "SUITE";
+  type: 'SINGLE' | 'DOUBLE' | 'SUITE';
 }
-export interface Image
-{
+export interface Image {
   id?: string;
   url: string;
   thumbnail?: string;
@@ -30,15 +27,32 @@ export interface BranchSuggestion {
   name: string;
   city: string;
   address: string;
-  type: "city" | "hotel";
+  type: 'city' | 'hotel';
 }
 
-export interface  searchParamsType{
-  name: string
-  checkIn: string
-  checkOut: string
-  ratingGte: string
-  minPrice: string
-  maxPrice:string
+export interface searchParamsType {
+  name: string;
+  checkIn: string;
+  checkOut: string;
+  ratingGte: string;
+  minPrice: string;
+  maxPrice: string;
+}
 
+interface RoomItem {
+  roomId: string;
+  roomName: string;
+  roomType: string;
+  roomPrice: number;
+  quantity: number;
+}
+
+interface BookingRequestData {
+  id: string;
+  checkIn: string;
+  checkOut: string;
+  totalPrice: number;
+  nights: number;
+  items: RoomItem[];
+  branchId: string;
 }

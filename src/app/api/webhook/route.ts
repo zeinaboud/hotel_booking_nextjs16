@@ -7,8 +7,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: NextRequest) {
-  console.log('Webhook route POST invoked');
-
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
 
@@ -45,23 +43,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // تحديث حالة BookingRequest مباشرة
-    const updatedBooking = await prisma.bookingRequest.update({
-      where: { id: bookingRequestId },
-      data: {
-        status: 'CONFIRMED',
-        stripeSessionId: session.id,
-      },
+    await prisma.$transaction(async (tx) => {
+      // update booking request to confirmed
+      const updatedBooking = await tx.bookingRequest.updateMany({
+        where: {
+          id: bookingRequestId,
+          status: 'PENDING',
+          expireAt: { gt: new Date() },
+        },
+        data: {
+          status: 'CONFIRMED',
+          stripeSessionId: session.id,
+        },
+      });
+      if (updatedBooking.count === 0) {
+        console.warn(`BookingRequest ${bookingRequestId} expired or already processed`);
+        return NextResponse.json({ received: true });
+      }
     });
-
-    console.log('✅ BookingRequest updated to CONFIRMED:', updatedBooking.id);
-
-    // تحديث غرفة لتصبح غير متاحة
-    await prisma.room.update({
-      where: { id: updatedBooking.roomId },
-      data: { available: false },
-    });
-
     return NextResponse.json({ received: true });
   } catch (err: any) {
     console.error('Webhook processing error:', err.message ?? err);
