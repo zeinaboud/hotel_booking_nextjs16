@@ -3,7 +3,7 @@
 import axios from 'axios';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
+import { FaSpinner } from 'react-icons/fa';
 interface RoomItem {
   roomId: string;
   roomName: string;
@@ -21,7 +21,7 @@ interface BookingRequestData {
   totalPrice: number;
   nights: number;
   items: RoomItem[];
-  branch: hotel;
+  branch: { id: string; hotel: hotel };
 }
 
 const Checkout = () => {
@@ -88,7 +88,12 @@ const Checkout = () => {
     }
   };
 
-  if (loading) return <p className="p-6">Loading…</p>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <FaSpinner className="animate-spin text-4xl text-amber-500" />
+      </div>
+    );
   if (uiError) return <p className="p-6 text-red-500">{uiError}</p>;
   if (!data) return null;
 
@@ -96,32 +101,42 @@ const Checkout = () => {
     <div className="max-w-2xl p-6 mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Checkout</h1>
 
-      <div className="p-4 space-y-3 border rounded-md bg-gray-50">
+      <div className="p-4 space-y-3 border rounded-md search_section">
         <h2 className="text-xl font-semibold">
-          <strong>Hotel name:</strong> {data.branch?.name}
+          <strong>Hotel name:</strong> {data.branch?.hotel?.name}
         </h2>
 
-        <div>
-          {data.items.map((item) => (
-            <div key={item.roomId}>
-              <p className="font-medium">
-                <strong>Room Name:</strong> {item.roomName}
-              </p>
-              <p className="text-gray-600">
-                <strong>Type:</strong> {item.roomType}
-              </p>
-              <p className="text-gray-600">
-                <strong>Price per night:</strong> ${item.roomPrice}
-              </p>
-              <p className="text-gray-600">
-                <strong>Quantity:</strong> {item.quantity}
-              </p>
-            </div>
-          ))}
+        <div className="flex " gap-4>
+          <div className="p-4 rounded-2xl space-y-3 ">
+            {data.items.map((item) => (
+              <div key={item.roomId} className="bg-background rounded-2xl p-2 ">
+                <p className="font-medium ">
+                  <strong>Room Name:</strong> {item.roomName}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Type:</strong> {item.roomType}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Price per night:</strong> ${item.roomPrice}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Quantity:</strong> {item.quantity}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <button onClick={handlePay} className="w-full p-3 text-white bg-blue-600 rounded-md">
+      <button
+        onClick={handlePay}
+        className="w-full relative flex items-center justify-center gap-2
+                   px-6 py-2 rounded-md
+                   bg-gradient-to-r from-yellow-500 to-amber-600
+                   text-white font-medium
+                   disabled:opacity-70 disabled:cursor-not-allowed
+                   transition-all duration-200"
+      >
         Proceed to Payment
       </button>
     </div>

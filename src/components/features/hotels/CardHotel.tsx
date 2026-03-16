@@ -1,24 +1,21 @@
-"use client"
-import { Skeleton } from "@/components/ui/skeleton";
-import { BranchHotelSearch } from "@/types/hotelsType";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/all";
-import Image from "next/image";
-import Link from "next/link";
-import { AiFillStar, AiOutlineStar } from "react-icons/ai";
-import { FaRegStarHalfStroke } from "react-icons/fa6";
-gsap.registerPlugin(ScrollTrigger)
-interface cardHotelProp
-{
-  hotel:BranchHotelSearch
+'use client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { BranchHotelSearch } from '@/types/hotelsType';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/all';
+import Image from 'next/image';
+import Link from 'next/link';
+import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
+import { FaRegStarHalfStroke } from 'react-icons/fa6';
+gsap.registerPlugin(ScrollTrigger);
+interface cardHotelProp {
+  hotel: BranchHotelSearch;
 }
 
-const CardHotel = ({ hotel }: cardHotelProp) =>
-{
+const CardHotel = ({ hotel }: cardHotelProp) => {
   const stars = Array.from({ length: 5 }, (_, i) => {
     const index = i + 1;
-    if (hotel.rating >= index)
-      return <AiFillStar key={i} size={15} className="text-yellow-400" />;
+    if (hotel.rating >= index) return <AiFillStar key={i} size={15} className="text-yellow-400" />;
 
     if (hotel.rating >= index - 0.5)
       return <FaRegStarHalfStroke key={i} size={15} className="text-yellow-400" />;
@@ -26,8 +23,7 @@ const CardHotel = ({ hotel }: cardHotelProp) =>
     return <AiOutlineStar key={i} size={15} className="text-yellow-400" />;
   });
 
-  const availableRoom = hotel.rooms.filter(r => r.available).length;
-  const imageUrl = hotel.images?.[0]?.url ?? "/placeholder.jpg";
+  const imageUrl = hotel.images?.[0]?.url ?? '/placeholder.jpg';
   return (
     <Link
       href={`/hotel/${hotel.id}`}
@@ -49,38 +45,25 @@ const CardHotel = ({ hotel }: cardHotelProp) =>
             {hotel.city} — {hotel.address}
           </p>
         </div>
-        <div className="flex gap-0.5">
-          {stars}
-        </div>
+        <div className="flex gap-0.5">{stars}</div>
       </div>
       <div className="space-y-2">
         <h3 className="font-bold">Rooms</h3>
 
-        {hotel.rooms.length === 0 && (
-          <p className="text-sm text-gray-500">No available rooms.</p>
-        )}
+        {hotel.rooms.length === 0 && <p className="text-sm text-gray-500">No available rooms.</p>}
 
-        {hotel.rooms.length > 0 && (
-          <p>
-            Available Room:{availableRoom}
-          </p>
-        )
-        }
+        {hotel.rooms.length > 0 && <p>Available Room:{hotel.rooms.length}</p>}
       </div>
-
     </Link>
   );
 };
-export const  StartupCardSkeleton= () =>
-(
-    <>
-        {
-            [0, 1,2, 3,].map((index: number) => (
-                <li key={index}>
-                    <Skeleton  className="h-8 w-full rounded-md"/>
-                </li>
-            ))
-        }
-    </>
-)
-export default CardHotel
+export const StartupCardSkeleton = () => (
+  <>
+    {[0, 1, 2, 3].map((index: number) => (
+      <li key={index}>
+        <Skeleton className="h-8 w-full rounded-md" />
+      </li>
+    ))}
+  </>
+);
+export default CardHotel;

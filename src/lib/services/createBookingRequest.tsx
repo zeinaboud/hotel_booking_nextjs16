@@ -41,102 +41,109 @@ export async function createBookingRequest({
   const nights = (co.getTime() - ci.getTime()) / (1000 * 60 * 60 * 24);
   if (nights <= 0) throw new BookingError('Invalid booking period');
 
-  return await prisma.$transaction(async (tx) => {
-    // تنظيف الحجوزات المعلقة المنتهية
-    await tx.bookingRequest.updateMany({
-      where: {
-        status: BookingRequestStatus.PENDING,
-        expireAt: { lt: new Date() },
-      },
-      data: { status: BookingRequestStatus.CANCELLED },
-    });
+  return await prisma.$transaction(
+    async (tx) => {
+      // تنظيف الحجوزات المعلقة المنتهية
+      await tx.bookingRequest.updateMany({
+        where: {
+          status: BookingRequestStatus.PENDING,
+          expireAt: { lt: new Date() },
+        },
+        data: { status: BookingRequestStatus.CANCELLED },
+      });
 
-    // جلب كل الغرف من النوع المطلوب مع الحجوزات المتداخلة
-    const rooms: RoomWithBookings[] = await tx.room.findMany({
-      where: { branchHotelId: hotelId, type: roomType },
-      include: {
-        bookings: {
-          where: {
-            bookingRequest: {
-              OR: [
-                {
-                  status: BookingRequestStatus.CONFIRMED,
-                  checkIn: { lt: co },
-                  checkOut: { gt: ci },
-                },
-                {
-                  status: BookingRequestStatus.PENDING,
-                  expireAt: { gt: new Date() },
-                  checkIn: { lt: co },
-                  checkOut: { gt: ci },
-                },
-              ],
+      // جلب كل الغرف من النوع المطلوب مع الحجوزات المتداخلة
+      const rooms: RoomWithBookings[] = await tx.room.findMany({
+        where: { branchHotelId: hotelId, type: roomType },
+        include: {
+          bookings: {
+            where: {
+              bookingRequest: {
+                OR: [
+                  {
+                    status: BookingRequestStatus.CONFIRMED,
+                    checkIn: { lt: co },
+                    checkOut: { gt: ci },
+                  },
+                  {
+                    status: BookingRequestStatus.PENDING,
+                    expireAt: { gt: new Date() },
+                    checkIn: { lt: co },
+                    checkOut: { gt: ci },
+                  },
+                ],
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    if (rooms.length === 0) throw new BookingError('No rooms of this type found');
+      if (rooms.length === 0) throw new BookingError('No rooms of this type found');
 
-    // توزيع الكمية المطلوبة على الغرف المتاحة
-    let remainingQty = quantity;
-    const roomsToBook: { roomId: string; qty: number }[] = [];
+      // توزيع الكمية المطلوبة على الغرف المتاحة
+      let remainingQty = quantity;
+      const roomsToBook: { roomId: string; qty: number }[] = [];
 
-    for (const room of rooms) {
-      const bookedQty = room.bookings.reduce((sum, b) => sum + b.quantity, 0);
-      const availableQty = room.totalQuantity - bookedQty;
-      if (availableQty > 0) {
-        const qtyToBook = Math.min(availableQty, remainingQty);
-        roomsToBook.push({ roomId: room.id, qty: qtyToBook });
-        remainingQty -= qtyToBook;
-        if (remainingQty <= 0) break;
+      for (const room of rooms) {
+        const bookedQty = room.bookings.reduce((sum, b) => sum + b.quantity, 0);
+        const availableQty = room.totalQuantity - bookedQty;
+        if (availableQty > 0) {
+          const qtyToBook = Math.min(availableQty, remainingQty);
+          roomsToBook.push({ roomId: room.id, qty: qtyToBook });
+          remainingQty -= qtyToBook;
+          if (remainingQty <= 0) break;
+        }
       }
-    }
 
-    if (remainingQty > 0) {
-      throw new BookingError('Not enough rooms available for the selected type');
-    }
+      if (remainingQty > 0) {
+        throw new BookingError('Not enough rooms available for the selected type');
+      }
+      const branch = await tx.branchHotel.findUnique({
+        where: { id: hotelId },
+      });
 
-    // إنشاء طلب الحجز مرة واحدة فقط
-    const bookingRequest = await tx.bookingRequest.create({
-      data: {
-        userId,
-        branchId: hotelId,
-        checkIn: ci,
-        checkOut: co,
-        totalPrice: 0, // سنقوم بحسابه بعد إنشاء الـ BookingItem
-        status: BookingRequestStatus.PENDING,
-        expireAt: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    });
-
-    // إنشاء BookingItem لكل غرفة وحساب السعر الإجمالي
-    let totalPrice = 0;
-    for (const b of roomsToBook) {
-      const room = rooms.find((r) => r.id === b.roomId)!;
-      const price = Math.round(nights * room.price * b.qty);
-      totalPrice += price;
-
-      await tx.bookingItem.create({
+      console.log('branch exists?', branch);
+      // إنشاء طلب الحجز مرة واحدة فقط
+      const bookingRequest = await tx.bookingRequest.create({
         data: {
-          bookingRequestId: bookingRequest.id,
-          roomId: room.id,
-          quantity: b.qty,
+          userId,
+          branchId: hotelId,
+          checkIn: ci,
+          checkOut: co,
+          totalPrice: 0, // سنقوم بحسابه بعد إنشاء الـ BookingItem
+          status: BookingRequestStatus.PENDING,
+          expireAt: new Date(Date.now() + 10 * 60 * 1000),
         },
       });
-    }
 
-    // تحديث السعر الإجمالي للـ BookingRequest
-    await tx.bookingRequest.update({
-      where: { id: bookingRequest.id },
-      data: { totalPrice },
-    });
+      // إنشاء BookingItem لكل غرفة وحساب السعر الإجمالي
+      let totalPrice = 0;
+      for (const b of roomsToBook) {
+        const room = rooms.find((r) => r.id === b.roomId)!;
+        const price = Math.round(nights * room.price * b.qty);
+        totalPrice += price;
 
-    return {
-      bookingRequest,
-      totalPrice,
-      nights,
-    };
-  });
+        await tx.bookingItem.create({
+          data: {
+            bookingRequestId: bookingRequest.id,
+            roomId: room.id,
+            quantity: b.qty,
+          },
+        });
+      }
+
+      // تحديث السعر الإجمالي للـ BookingRequest
+      await tx.bookingRequest.update({
+        where: { id: bookingRequest.id },
+        data: { totalPrice },
+      });
+
+      return {
+        bookingRequest,
+        totalPrice,
+        nights,
+      };
+    },
+    { timeout: 10000 },
+  );
 }

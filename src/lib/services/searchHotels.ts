@@ -1,18 +1,19 @@
-import { prisma } from "@/lib/prisma";
-import { BranchHotelSearch } from "../../types/hotelsType";
+import { prisma } from '@/lib/prisma';
+import { BranchHotelSearch } from '../../types/hotelsType';
 
 export async function searchHotelServices(
-  name = "",
+  name = '',
   opts: {
     checkIn?: string;
     checkOut?: string;
-    ratingGte?: number,
-    minPrice?: number,
-    maxPrice?:number,
-  } = {}
-): Promise<{ data: BranchHotelSearch[] }> {
-
-  const { checkIn, checkOut,ratingGte ,minPrice,maxPrice} = opts;
+    ratingGte?: number;
+    minPrice?: number;
+    maxPrice?: number;
+    skip?: number;
+    take?: number;
+  } = {},
+): Promise<{ data: BranchHotelSearch[]; total: number }> {
+  const { checkIn, checkOut, ratingGte, minPrice, maxPrice, skip, take } = opts;
 
   // MAIN BRANCH FILTER
   const whereBranch: any = { AND: [] };
@@ -20,54 +21,47 @@ export async function searchHotelServices(
   if (name) {
     whereBranch.AND.push({
       OR: [
-        { city: { contains: name, mode: "insensitive" } },
-        { address: { contains: name, mode: "insensitive" } },
-        { hotel: { name: { contains: name, mode: "insensitive" } } }, // هذه كانت غلط عندك
+        { city: { contains: name, mode: 'insensitive' } },
+        { address: { contains: name, mode: 'insensitive' } },
+        { hotel: { name: { contains: name, mode: 'insensitive' } } }, // هذه كانت غلط عندك
       ],
     });
   }
 
-  if (typeof ratingGte === "number")
-  {
-    whereBranch.AND.push({ rating: { gte: ratingGte } });
+  if (typeof ratingGte === 'number') {
+    whereBranch.AND.push({ rating: { equals: ratingGte } });
   }
   // ROOMS FILTER
   const roomWhere: any = {};
 
-  //price filter
- // PRICE FILTER
-if (minPrice !== undefined || maxPrice !== undefined) {
-  roomWhere.price = {};
+  // PRICE FILTER
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    roomWhere.price = {};
 
-  if (minPrice !== undefined) {
-    roomWhere.price.gte = minPrice;
-  }
+    if (minPrice !== undefined) {
+      roomWhere.price.gte = minPrice;
+    }
 
-  if (maxPrice !== undefined) {
-    roomWhere.price.lte = maxPrice;
+    if (maxPrice !== undefined) {
+      roomWhere.price.lte = maxPrice;
+    }
   }
-}
   if (checkIn && checkOut) {
     const ci = new Date(checkIn);
     const co = new Date(checkOut);
 
-    roomWhere.AND = [
-      { available: true },
-      {
-        NOT: {
-          bookings: {
-            some: {
-              AND: [
-                { checkIn: { lt: co } },
-                { checkOut: { gt: ci } },
-              ],
-            },
-          },
+    roomWhere.NOT = {
+      bookings: {
+        some: {
+          AND: [{ checkIn: { lt: co } }, { checkOut: { gt: ci } }],
         },
       },
-    ];
+    };
   }
-
+  //count total branches before pagination
+  const total = await prisma.branchHotel.count({
+    where: whereBranch.AND.length ? whereBranch : undefined,
+  });
   // PRISMA QUERY
   const branches = await prisma.branchHotel.findMany({
     where: whereBranch.AND.length ? whereBranch : undefined,
@@ -76,16 +70,16 @@ if (minPrice !== undefined || maxPrice !== undefined) {
       rooms: {
         where: Object.keys(roomWhere).length ? roomWhere : undefined,
       },
-      images:true,
+      images: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
   });
 
   // FORMAT RESULT
   const data: BranchHotelSearch[] = branches.map((b) => ({
     id: b.id,
     hotelId: b.hotelId,
-    hotelName: b.hotel?.name ?? "",
+    hotelName: b.hotel?.name ?? '',
     city: b.city,
     address: b.address,
     rating: b.rating ?? null,
@@ -94,10 +88,9 @@ if (minPrice !== undefined || maxPrice !== undefined) {
       id: r.id,
       name: r.name,
       price: r.price,
-      available: r.available,
       type: r.type,
     })),
   }));
 
-  return { data };
+  return { data, total };
 }

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { AiFillStar, AiOutlineStar } from "react-icons/ai";
-import { FaRegStarHalfStroke } from "react-icons/fa6";
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import { Autoplay, Navigation, Pagination } from "swiper/modules";
-import { Swiper, SwiperSlide } from "swiper/react";
+import Image from 'next/image';
+import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
+import { FaRegStarHalfStroke } from 'react-icons/fa6';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import { Autoplay, Navigation, Pagination } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/react';
 
 interface BranchHotel {
   id: string;
@@ -35,8 +35,7 @@ const HotelCarousel = ({ branches }: HotelCarouselProps) => {
     return Array.from({ length: 5 }, (_, i) => {
       const value = i + 1;
 
-      if (safeRating >= value)
-        return <AiFillStar key={i} size={14} className="text-yellow-400" />;
+      if (safeRating >= value) return <AiFillStar key={i} size={14} className="text-yellow-400" />;
 
       if (safeRating >= value - 0.5)
         return <FaRegStarHalfStroke key={i} size={14} className="text-yellow-400" />;
@@ -47,14 +46,18 @@ const HotelCarousel = ({ branches }: HotelCarouselProps) => {
 
   return (
     <div>
-      <h2 >THE BEST HOTELS</h2>
+      <h2>THE BEST HOTELS</h2>
 
       <Swiper
+        className="pb-20"
         modules={[Navigation, Pagination, Autoplay]}
         spaceBetween={12}
         loop
         navigation
-        pagination={{ clickable: true }}
+        pagination={{
+          clickable: true,
+          el: '.custom-pagination',
+        }}
         autoplay={{ delay: 3000 }}
         breakpoints={{
           640: { slidesPerView: 1 },
@@ -66,30 +69,27 @@ const HotelCarousel = ({ branches }: HotelCarouselProps) => {
         {branches.map((branch) => (
           <SwiperSlide key={branch.id}>
             <Image
-              src={branch.images[0]?.url ?? "/placeholder.jpg"}
+              src={branch.images?.[0]?.url ?? '/placeholder.jpg'}
               alt={branch.hotel.name}
               width={300}
               height={200}
               className="w-full h-48 object-cover rounded-lg mb-3"
             />
 
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-semibold">
-                  {branch.hotel.name}
-                </h2>
-                <p className="text-sm text-gray-600">
-                  {branch.city} — {branch.address}
-                </p>
-              </div>
+            <div className="p-4">
+              <h3 className="text-lg font-semibold mb-1">{branch.hotel.name}</h3>
 
-              <div className="flex items-center gap-1">
-                {renderStars(branch.rating)}
-              </div>
+              <p className="text-sm text-gray-500 mb-2">
+                {branch.city} — {branch.address}
+              </p>
+
+              <div className="flex items-center gap-1">{renderStars(branch.rating)}</div>
             </div>
           </SwiperSlide>
         ))}
       </Swiper>
+      {/* Pagination تحت الصور */}
+      <div className="custom-pagination flex justify-center mt-6"></div>
     </div>
   );
 };

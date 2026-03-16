@@ -66,7 +66,7 @@ export default async function createCheckoutSession(bookingRequestId: string) {
     metadata: {
       bookingRequestId: booking.id,
     },
-    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkoutProccess/success`,
+    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkoutProccess/successPage?bookingRequestId=${booking.id}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkoutProccess/cancel`,
   });
 

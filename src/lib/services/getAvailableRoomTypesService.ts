@@ -12,9 +12,6 @@ export async function getAvailableRoomTypes({
   const ci = new Date(checkIn);
   const co = new Date(checkOut);
   const now = new Date();
-  if (ci >= co) {
-    throw new Error('check-out date must be after check-in date');
-  }
 
   const rooms = await prisma.room.findMany({
     where: { branchHotelId },
@@ -42,25 +39,25 @@ export async function getAvailableRoomTypes({
       NOT: {
         bookings: {
           some: {
-            AND: [
-              { checkIn: { lt: co } },
-              { checkOut: { gt: ci } },
-              {
-                OR: [
-                  { status: 'CONFIRMED' },
-                  {
-                    AND: [{ status: 'PENDING' }, { expireAt: { gt: now } }],
-                  },
-                ],
-              },
-            ],
+            bookingRequest: {
+              AND: [
+                { checkIn: { lt: new Date(checkOut) } },
+                { checkOut: { gt: new Date(checkIn) } },
+                {
+                  OR: [
+                    { status: 'CONFIRMED' },
+                    {
+                      AND: [{ status: 'PENDING' }, { expireAt: { gt: new Date() } }],
+                    },
+                  ],
+                },
+              ],
+            },
           },
         },
       },
     },
-    select: {
-      type: true,
-    },
+    select: { type: true },
   });
   for (const room of availableRooms) {
     grouped[room.type].availableCount += 1;

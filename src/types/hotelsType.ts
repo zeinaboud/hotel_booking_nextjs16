@@ -37,22 +37,6 @@ export interface searchParamsType {
   ratingGte: string;
   minPrice: string;
   maxPrice: string;
-}
-
-interface RoomItem {
-  roomId: string;
-  roomName: string;
-  roomType: string;
-  roomPrice: number;
-  quantity: number;
-}
-
-interface BookingRequestData {
-  id: string;
-  checkIn: string;
-  checkOut: string;
-  totalPrice: number;
-  nights: number;
-  items: RoomItem[];
-  branchId: string;
+  page?: string;
+  limit?: string;
 }

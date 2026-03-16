@@ -1,90 +1,103 @@
-"use client"
-import { Input } from "@/components/ui/input";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { SubmitHandler, useForm } from "react-hook-form";
-import { IoSearch } from "react-icons/io5";
-import RoomTable from "./RoomTable";
-interface searchRoom
-{
-  checkIn: string
-  checkOut: string
-  type:string
-}
+'use client';
 
-const SearchRoom = ({hotelId}:{hotelId:string}) =>
-{
+import { Input } from '@/components/ui/input';
+import { SearchRoomForm, searchRoomSchema } from '@/lib/validation/searchRoom';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTransition } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
+import { IoSearch } from 'react-icons/io5';
+import RoomTable from './RoomTable';
+const SearchRoom = ({ hotelId }: { hotelId: string }) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const types = ['SINGLE', 'DOUBLE', 'SUITE'];
 
   const {
     register,
     handleSubmit,
-  } = useForm<searchRoom>();
+    formState: { errors, isSubmitting },
+  } = useForm<SearchRoomForm>({
+    resolver: zodResolver(searchRoomSchema),
+    defaultValues: {
+      checkIn: searchParams.get('checkIn') || '',
+      checkOut: searchParams.get('checkOut') || '',
+      type: (searchParams.get('type') as 'SINGLE' | 'DOUBLE' | 'SUITE') || undefined,
+    },
+  });
 
-  const types = ["SINGLE", "DOUBLE", "SUITE"];
-  const [loading, isLoading] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const onSubmit: SubmitHandler<searchRoom> = async (data) =>
-  {
-    isLoading(true);
+  const onSubmit: SubmitHandler<SearchRoomForm> = async (data) => {
     const queryParams = new URLSearchParams();
-    if (data.checkIn) queryParams.set("checkIn", data.checkIn);
-    if (data.checkOut) queryParams.set("checkOut", data.checkOut);
-    if (data.type) queryParams.set("type", data.type); // قيمة الراديو هنا
-
-    router.push(`?${queryParams.toString()}`);
-  }
-
+    queryParams.set('checkIn', data.checkIn);
+    queryParams.set('checkOut', data.checkOut);
+    if (data.type) queryParams.set('type', data.type);
+    startTransition(() => {
+      router.push(`?${queryParams.toString()}`);
+    });
+  };
   return (
-    <>
-      <div className="search_section mt-10">
-        <form  onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="check-in-out-input">
-              <label htmlFor="checkInRoom">check in</label>
-              <Input
-                type="date"
-                {...register("checkIn")}
-              />
-            </div>
-            <div className="check-in-out-input">
-              <label htmlFor="checkOutRoom">check out</label>
-              <Input
-                type="date"
-                {...register("checkOut")}
-              />
-            </div>
-            <div className="check-in-out-input">
-              <label htmlFor="room type">Room type</label>
-              <div className="flex items-center gap-3">
-                {types.map((type) => (
-                  <div
-                    key={type}
-                    className="flex gap-1"
-                  >
-                    <Input
-                      type="radio"
-                      value={type}
-                      {...register("type")}
-                    />
-                    <span>{type}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <button className="btn-gradient-gold flex items-center rounded mt-6">
-                  {loading ? "Searching..." : <IoSearch size={20} />}
-              </button>
+    <div className="search_section mt-10 p-6 ">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid grid-cols-1  sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col gap-1 ">
+            <label className="font-bold ">Check in</label>
+            <Input type="date" {...register('checkIn')} />
+            {errors.checkIn && (
+              <p className="text-red-500 text-sm mt-1">{errors.checkIn.message}</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1 ">
+            <label className="font-bold ">Check out</label>
+            <Input type="date" {...register('checkOut')} />
+            {errors.checkOut && (
+              <p className="text-red-500 text-sm mt-1">{errors.checkOut.message}</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1 ">
+            <label className="font-bold ">Room type</label>
+            <div className="flex items-end gap-3">
+              {types.map((type) => (
+                <div key={type} className="flex gap-1">
+                  <Input type="radio" value={type} {...register('type')} />
+                  <span>{type}</span>
+                </div>
+              ))}
             </div>
           </div>
-        </form>
-        <RoomTable
-          hotelId={hotelId}
-        />
-      </div>
-    </>
-  )
-}
 
-export default SearchRoom
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full relative flex items-center justify-center gap-2
+                   px-6 py-2 rounded-md
+                   bg-gradient-to-r from-yellow-500 to-amber-600
+                   text-white font-medium
+                   disabled:opacity-70 disabled:cursor-not-allowed
+                   transition-all duration-200"
+            >
+              {isPending ? (
+                <>
+                  <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>searching..</span>
+                </>
+              ) : (
+                <>
+                  <IoSearch size={20} />
+                  <span>Search</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <RoomTable hotelId={hotelId} />
+    </div>
+  );
+};
+
+export default SearchRoom;

@@ -83,7 +83,6 @@ const RoomTable = ({ hotelId }: { hotelId: string }) => {
           <tr className=" text-left text-sm">
             <th className="border p-2">Room Type</th>
             <th className="border p-2">Price per Night</th>
-            <th className="border p-2">Available</th>
             <th className="border p-2">Select Quantity</th>
             <th className="border p-2">Action</th>
           </tr>
@@ -93,12 +92,11 @@ const RoomTable = ({ hotelId }: { hotelId: string }) => {
             <tr key={roomTypeItem.type}>
               <td className="p-3 border font-medium capitalize">{roomTypeItem.type}</td>
               <td className="p-3 border">${roomTypeItem.price}</td>
-              <td className="p-3 border">{roomTypeItem.availableQuantity}</td>
               <td className="p-3 border">
                 <select
                   value={selectedQuantity[roomTypeItem.type] || 0}
                   onChange={(e) => handleQuantityChange(roomTypeItem.type, Number(e.target.value))}
-                  className="border px-2 py-1 rounded"
+                  className="border px-2 py-1 rounded dark:text-white dark:bg-background"
                 >
                   <option value={0}>0</option>
                   {Array.from({ length: roomTypeItem.availableQuantity }, (_, i) => i + 1).map(
