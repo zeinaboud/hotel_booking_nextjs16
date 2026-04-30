@@ -53,15 +53,13 @@ export async function searchHotelServices(
     roomWhere.NOT = {
       bookings: {
         some: {
-          AND: [{ checkIn: { lt: co } }, { checkOut: { gt: ci } }],
+          bookingRequest: {
+            AND: [{ checkIn: { lt: co } }, { checkOut: { gt: ci } }],
+          },
         },
       },
     };
   }
-  //count total branches before pagination
-  const total = await prisma.branchHotel.count({
-    where: whereBranch.AND.length ? whereBranch : undefined,
-  });
   // PRISMA QUERY
   const branches = await prisma.branchHotel.findMany({
     where: whereBranch.AND.length ? whereBranch : undefined,
@@ -75,8 +73,14 @@ export async function searchHotelServices(
     orderBy: { createdAt: 'desc' },
   });
 
-  // FORMAT RESULT
-  const data: BranchHotelSearch[] = branches.map((b) => ({
+  // FILTER BRANCHES WITH NO AVAILABLE ROOMS WHEN DATES ARE PROVIDED
+  const branchesWithRooms =
+    checkIn && checkOut ? branches.filter((b) => b.rooms.length > 0) : branches;
+
+  // APPLY PAGINATION AND FORMAT RESULT
+  const paginatedBranches = branchesWithRooms.slice(skip || 0, (skip || 0) + (take || 10));
+
+  const data: BranchHotelSearch[] = paginatedBranches.map((b) => ({
     id: b.id,
     hotelId: b.hotelId,
     hotelName: b.hotel?.name ?? '',
@@ -92,5 +96,5 @@ export async function searchHotelServices(
     })),
   }));
 
-  return { data, total };
+  return { data, total: branchesWithRooms.length };
 }
