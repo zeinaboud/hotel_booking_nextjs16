@@ -6,16 +6,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-12-15.clover' as Stripe.LatestApiVersion,
 });
 
-const webhookUrl = process.env.N8N_BOOKING_WEBHOOK;
-
-if (!webhookUrl) {
-  throw new Error('N8N_BOOKING_WEBHOOK is missing');
-}
-
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
+  const webhookUrl = process.env.N8N_BOOKING_WEBHOOK;
 
+  if (!webhookUrl) {
+    throw new Error('N8N_BOOKING_WEBHOOK is missing');
+  }
   let event: Stripe.Event | null = null;
   const canBypassSignature =
     process.env.NODE_ENV !== 'production' && !process.env.STRIPE_WEBHOOK_SECRET;
@@ -68,7 +66,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    await fetch(webhookUrl!, {
+    await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
