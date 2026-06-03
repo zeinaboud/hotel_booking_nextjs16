@@ -65,15 +65,50 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true });
       }
     });
-
+    //find all data of the booking reauest to send it to n8n
+    const booking = await prisma.bookingRequest.findUnique({
+      where: {
+        id: bookingRequestId,
+      },
+      include: {
+        user: true,
+        branch: {
+          include: {
+            hotel: true,
+          },
+        },
+        items: {
+          include: {
+            room: true,
+          },
+        },
+      },
+    });
+    //fetch to n8n webhock
     await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        bookingRequestId,
-        stripeSessionId: session.id,
+        bookingId: booking?.id,
+
+        customerName: booking?.user.name,
+        customerEmail: booking?.user.email,
+
+        hotelName: booking?.branch.hotel.name,
+        city: booking?.branch.city,
+
+        checkIn: booking?.checkIn,
+        checkOut: booking?.checkOut,
+
+        totalPrice: booking?.totalPrice,
+
+        rooms: booking?.items.map((item) => ({
+          roomName: item.room.name,
+          quantity: item.quantity,
+          price: item.room.price,
+        })),
       }),
     });
     return NextResponse.json({ received: true });
