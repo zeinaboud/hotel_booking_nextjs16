@@ -1,11 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   experimental: {
     authPersistSession: true,
     typedRoutes: true,
-    optimizePackageImports: ["lucide-react"],
-  }, images: {
+    optimizePackageImports: ['lucide-react'],
+  },
+  images: {
     domains: ['cf.bstatic.com'], // السماح بعرض الصور من هذا الدومين
   },
   typescript: {

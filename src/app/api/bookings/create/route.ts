@@ -22,7 +22,9 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: 'User not found, please sign in' }, { status: 401 });
     }
-
+    console.log('=== AI TOOL CALL ARGS ===');
+    console.log(body);
+    console.log('=========================');
     // إنشاء الحجز
     const result = await createBookingRequest({
       userId: user.id,
